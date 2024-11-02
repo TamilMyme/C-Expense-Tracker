@@ -1,0 +1,186 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <map>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+class Expense {
+public:
+    std::string category;
+    double amount;
+    std::string date;
+
+    Expense(std::string category, double amount, std::string date)
+        : category(category), amount(amount), date(date) {}
+};
+
+class ExpenseTracker {
+private:
+    std::vector<Expense> expenses;
+    std::map<std::string, double> monthlyBudget;
+    std::map<std::string, double> categoryTotals;
+
+public:
+    void addExpense() {
+        std::string category, date;
+        double amount;
+
+        std::cout << "Enter category: ";
+        std::cin >> category;
+        std::cout << "Enter amount: ";
+        std::cin >> amount;
+        std::cout << "Enter date (YYYY-MM-DD): ";
+        std::cin >> date;
+
+        expenses.emplace_back(category, amount, date);
+        categoryTotals[category] += amount;
+        saveExpenses();
+
+        std::cout << "Expense added successfully.\n";
+    }
+
+    void setBudget() {
+        std::string category;
+        double budget;
+
+        std::cout << "Enter category to set budget for: ";
+        std::cin >> category;
+        std::cout << "Enter budget amount: ";
+        std::cin >> budget;
+
+        monthlyBudget[category] = budget;
+        std::cout << "Budget set for " << category << ": " << budget << "\n";
+    }
+
+    void showReport() {
+        std::cout << "\n---- Expense Report ----\n";
+        for (const auto& category : categoryTotals) {
+            std::cout << "Category: " << category.first
+                      << ", Total Spent: " << category.second;
+            if (monthlyBudget.count(category.first)) {
+                std::cout << ", Budget: " << monthlyBudget[category.first];
+                if (category.second > monthlyBudget[category.first]) {
+                    std::cout << " [Over Budget]";
+                }
+            }
+            std::cout << "\n";
+        }
+    }
+
+    void analyzeSpending() {
+        double totalSpending = 0.0;
+        for (const auto& expense : expenses) {
+            totalSpending += expense.amount;
+        }
+
+        std::cout << "\n---- Spending Analysis ----\n";
+        std::cout << "Total Spending: $" << totalSpending << "\n";
+
+        if (!monthlyBudget.empty()) {
+            double totalBudget = 0.0;
+            for (const auto& budget : monthlyBudget) {
+                totalBudget += budget.second;
+            }
+            std::cout << "Total Budget: $" << totalBudget << "\n";
+
+            if (totalSpending > totalBudget) {
+                std::cout << "You have exceeded your total budget.\n";
+            } else {
+                std::cout << "You are within your budget.\n";
+            }
+        }
+    }
+
+    void displayMonthlyTrend() {
+        std::cout << "\n---- Monthly Spending Trend ----\n";
+        std::map<std::string, double> monthlyTotals;
+
+        for (const auto& expense : expenses) {
+            std::string month = expense.date.substr(0, 7); // YYYY-MM
+            monthlyTotals[month] += expense.amount;
+        }
+
+        for (const auto& month : monthlyTotals) {
+            std::cout << month.first << ": $"
+                      << std::fixed << std::setprecision(2)
+                      << month.second << " | ";
+            int barLength = static_cast<int>(month.second / 10);
+            for (int i = 0; i < barLength; ++i) {
+                std::cout << "#";
+            }
+            std::cout << "\n";
+        }
+    }
+
+    void loadExpenses() {
+        std::ifstream file("expenses.txt");
+        if (file.is_open()) {
+            std::string category, date;
+            double amount;
+            while (file >> category >> amount >> date) {
+                expenses.emplace_back(category, amount, date);
+                categoryTotals[category] += amount;
+            }
+            file.close();
+        }
+    }
+
+    void saveExpenses() {
+        std::ofstream file("expenses.txt");
+        for (const auto& expense : expenses) {
+            file << expense.category << " "
+                 << expense.amount << " "
+                 << expense.date << "\n";
+        }
+        file.close();
+    }
+};
+
+void displayMenu() {
+    std::cout << "\n---- Expense Tracker Menu ----\n";
+    std::cout << "1. Add Expense\n";
+    std::cout << "2. Set Monthly Budget\n";
+    std::cout << "3. Show Report\n";
+    std::cout << "4. Analyze Spending\n";
+    std::cout << "5. Display Monthly Trend\n";
+    std::cout << "6. Exit\n";
+    std::cout << "Choose an option: ";
+}
+
+int main() {
+    ExpenseTracker tracker;
+    tracker.loadExpenses();
+
+    int choice;
+    while (true) {
+        displayMenu();
+        std::cin >> choice;
+
+        switch (choice) {
+            case 1:
+                tracker.addExpense();
+                break;
+            case 2:
+                tracker.setBudget();
+                break;
+            case 3:
+                tracker.showReport();
+                break;
+            case 4:
+                tracker.analyzeSpending();
+                break;
+            case 5:
+                tracker.displayMonthlyTrend();
+                break;
+            case 6:
+                std::cout << "Exiting Expense Tracker. Goodbye!\n";
+                return 0;
+            default:
+                std::cout << "Invalid option. Please try again.\n";
+                break;
+        }
+    }
+    return 0;
+}
